@@ -3,19 +3,16 @@ import { Animator } from "../systems/animator";
 import { ENEMY_DEFAULTS } from "../config/enemyConfig";
 import type { Player } from "./player";
 import { dealDamage } from "../systems/damageSystem";
-import { isGodModeEnabled } from "../systems/godMode";
 import { applyGravity, clampFallSpeed, integrate } from "../systems/physics";
 
 const bossSprite = new Image();
-bossSprite.src =
-  "/assets/sprites/bosses/Skeleton King Animations/Skeleton king2-sheet.png";
+bossSprite.src = "/assets/sprites/bosses/Skeleton King Animations/Skeleton king2-sheet.png";
 
 export class Boss extends Enemy {
   attackCooldownTimer = 0;
-  attackCooldown = ENEMY_DEFAULTS.combat.attackCooldown * 1.5;
-  attackRange = 110;
-  followRange = 320;
-  attackWidth = 140;
+  attackRange = 30;
+  followRange = 180;
+  attackWidth = 30;
 
   isAttacking = false;
   attackHasHit = false;
@@ -28,16 +25,14 @@ export class Boss extends Enemy {
   constructor(x: number, y: number) {
     super(x, y);
 
-    this.canFallInPit = false;
+    this.w = ENEMY_DEFAULTS.size.w * 1.5;
+    this.h = ENEMY_DEFAULTS.size.h * 2.5;
 
-    this.w = ENEMY_DEFAULTS.size.w * 4;
-    this.h = ENEMY_DEFAULTS.size.h * 3;
-
-    this.health = ENEMY_DEFAULTS.combat.health * 6;
-    this.maxHealth = ENEMY_DEFAULTS.combat.maxHealth * 6;
+    this.health = ENEMY_DEFAULTS.combat.health * 10;
+    this.maxHealth = this.health;
 
     this.damage = ENEMY_DEFAULTS.combat.damage;
-    this.moveSpeed = ENEMY_DEFAULTS.movement.followSpeed * 0.8;
+    this.moveSpeed = ENEMY_DEFAULTS.movement.followSpeed * 0.5;
 
     this.animator = new Animator(bossSprite, 200, 130);
 
@@ -51,6 +46,8 @@ export class Boss extends Enemy {
   }
 
   override update(dt: number, player: Player): void {
+    if (this.isDead) return;
+
     const bossCenter = this.x + this.w / 2;
     const playerCenter = player.x + player.w / 2;
 
@@ -85,7 +82,7 @@ export class Boss extends Enemy {
       if (distance <= this.attackRange) {
         if (this.attackCooldownTimer <= 0 && this.hasExitedAttackRange) {
           this.isAttacking = true;
-          this.attackCooldownTimer = this.attackCooldown;
+          this.attackCooldownTimer = 1.2;
           this.attackHasHit = false;
           this.attackLockTimer = 0.4;
           this.hasExitedAttackRange = false;
@@ -129,7 +126,6 @@ export class Boss extends Enemy {
 
   handleAttack(player: Player, dx: number, dy: number): void {
     if (!this.isAttacking) return;
-    if (isGodModeEnabled()) return;
 
     const bossCenter = this.x + this.w / 2;
     const playerCenter = player.x + player.w / 2;
@@ -144,7 +140,6 @@ export class Boss extends Enemy {
       !this.attackHasHit
     ) {
       const direction = dx < 0 ? -1 : 1;
-
       const knockbackX = direction * 650;
       const knockbackY = -100;
 
@@ -152,6 +147,18 @@ export class Boss extends Enemy {
       player.invulnTimer = player.invulnTime;
 
       this.attackHasHit = true;
+    }
+  }
+
+  takeDamage(damage: number, knockbackX = 0, knockbackY = 0) {
+    if (this.isDead) return;
+    this.health -= damage;
+    this.knockbackX = knockbackX;
+    this.knockbackY = knockbackY;
+
+    if (this.health <= 0) {
+      this.health = 0;
+      this.isDead = true;
     }
   }
 

@@ -25,7 +25,7 @@ export class BossArena extends BaseRender {
             "/assets/sprites/tiles/boss-tiles-2.png",
         );
 
-
+  
 
         this.background = new Image();
         this.background.src = "/assets/backgrounds/bg-boss-4.png";
@@ -145,19 +145,72 @@ export class BossArena extends BaseRender {
         this.ctx.restore();
     }
 
+    drawBossUI(boss) {
+           
+            const healthPercent = Math.max(0, boss.health / boss.maxHealth);
+            
+            const screenW = this.canvas.width;
+            const barW = screenW * 0.6; 
+            const barH = 12;
+            const x = (screenW - barW) / 2; 
+            const y = 50; 
+
+            this.ctx.save();
+
+            // Draw Background 
+            this.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            this.ctx.fillRect(x, y, barW, barH);
+
+            // Draw Health Fill 
+            this.ctx.fillStyle = "#b01313";
+            this.ctx.fillRect(x, y, barW * healthPercent, barH);
+
+            // Border/Frame
+            this.ctx.strokeStyle = "#e0c080"; // Gold-ish border
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(x, y, barW, barH);
+
+            // Draw Name Label
+            this.ctx.fillStyle = "white";
+            this.ctx.font = "bold 18px 'Cinzel', serif"; 
+            this.ctx.textAlign = "left";
+            this.ctx.fillText("SKELTON KING, VARGUS FELLWROTH", x, y - 10);
+
+            this.ctx.restore();
+        }
+
     render() {
         super.render();
 
         if (!boss.isDead) {
             boss.update(1 / 60, this.player);
 
+            
+
+            const visualWidth = 400;  
+            const visualHeight = 250; 
+
+            const offsetX = (visualWidth - boss.w) / 2;
+            const offsetY = (visualHeight - boss.h);
+
+            let sideShift = boss.facing === "right" ? 30 : -30;
+
             boss.animator.draw(
                 this.ctx,
-                boss.x - this.camera.x,
-                boss.y - this.camera.y,
-                boss.w,
-                boss.h
+                (boss.x - this.camera.x - offsetX) + sideShift, 
+                boss.y - this.camera.y - offsetY, 
+                visualWidth,
+                visualHeight
             );
+
+            const distX = Math.abs(this.player.x - boss.x);
+            const distY = Math.abs(this.player.y - boss.y);
+
+        
+            if (distX < 800 && distY < 300) {
+                this.drawBossUI(boss);
+            }
+
         } else if (!this.hasDispatchedBossDefeated) {
             this.hasDispatchedBossDefeated = true;
             window.dispatchEvent(new Event("bossDefeated"));
